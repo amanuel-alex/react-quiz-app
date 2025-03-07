@@ -5,12 +5,14 @@ import Loader from "./basics/Loader";
 import Error from "./basics/Error";
 import StartScreen from "./components/StartScreen";
 import Questions from "./components/Questions";
-
+import NextButton from "./components/NextButton";
+import Progress from "./components/Progress";
 const initialState = {
   questions: [],
   status: "loading", // status may be "loading", "error", "ready", or "active"
   index: 0,
   answer: null,
+  points: 0,
 };
 
 function reducer(state, action) {
@@ -22,13 +24,31 @@ function reducer(state, action) {
     case "start":
       return { ...state, status: "active" };
     case "newAnswer":
-      return { ...state, answer: action.payload };
+      const question = state.questions.at(state.index);
+      return {
+        ...state,
+        answer: action.payload,
+        points:
+          action.payload === question.correctOption
+            ? state.points + question.points
+            : state.points,
+      };
+    case "nextQuestion":
+      return {
+        ...state,
+        index: state.index + 1,
+        answer: null,
+      };
   }
 }
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { questions, status, index, answer } = state;
+  const { questions, status, index, answer, points } = state;
+  const maxPossiblePoints = questions.reduce(
+    (acc, question) => acc + question.points,
+    0
+  );
   const numQuestions = questions.length;
   useEffect(function () {
     fetch("http://localhost:8000/questions")
@@ -47,11 +67,21 @@ function App() {
           <StartScreen numQuestions={numQuestions} dispatch={dispatch} />
         )}
         {status === "active" && (
-          <Questions
-            questions={questions[index]}
-            dispatch={dispatch}
-            answer={answer}
-          />
+          <>
+            <Progress
+              index={index}
+              numQuestions={numQuestions}
+              points={points}
+              totalPoints={maxPossiblePoints}
+              answer={answer}
+            />
+            <Questions
+              questions={questions[index]}
+              dispatch={dispatch}
+              answer={answer}
+            />
+            <NextButton dispatch={dispatch} answer={answer} />
+          </>
         )}
       </Main>
     </>
