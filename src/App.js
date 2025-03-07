@@ -7,12 +7,14 @@ import StartScreen from "./components/StartScreen";
 import Questions from "./components/Questions";
 import NextButton from "./components/NextButton";
 import Progress from "./components/Progress";
+import FinishedScreen from "./components/Finished";
 const initialState = {
   questions: [],
   status: "loading", // status may be "loading", "error", "ready", or "active"
   index: 0,
   answer: null,
   points: 0,
+  highscore: 0,
 };
 
 function reducer(state, action) {
@@ -39,12 +41,25 @@ function reducer(state, action) {
         index: state.index + 1,
         answer: null,
       };
+    case "Finished":
+      return {
+        ...state,
+        status: "finished",
+        highscore:
+          state.points > state.highscore ? state.points : state.highscore,
+      };
+    case "restart":
+      return {
+        ...initialState,
+        status: "ready",
+        questions: state.questions,
+      };
   }
 }
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { questions, status, index, answer, points } = state;
+  const { questions, status, index, answer, points, highscore } = state;
   const maxPossiblePoints = questions.reduce(
     (acc, question) => acc + question.points,
     0
@@ -58,7 +73,7 @@ function App() {
   }, []);
 
   return (
-    <>
+    <div className="app">
       <Header />
       <Main>
         {status === "loading" && <Loader />}
@@ -80,11 +95,23 @@ function App() {
               dispatch={dispatch}
               answer={answer}
             />
-            <NextButton dispatch={dispatch} answer={answer} />
+            <NextButton
+              dispatch={dispatch}
+              answer={answer}
+              index={index}
+              numQuestions={numQuestions}
+            />
           </>
         )}
+        {status === "finished" && (
+          <FinishedScreen
+            points={points}
+            maxPossiblePoints={maxPossiblePoints}
+            highscore={highscore}
+          />
+        )}
       </Main>
-    </>
+    </div>
   );
 }
 
